@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import calendar
 from collections.abc import Sequence
-from datetime import timezone
+from datetime import UTC
 from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict
@@ -24,7 +24,7 @@ class TouchLabels(BaseModel):
 
 
 def _datetime_to_ns(value) -> int:
-    utc = value.astimezone(timezone.utc)
+    utc = value.astimezone(UTC)
     return calendar.timegm(utc.utctimetuple()) * 1_000_000_000 + utc.microsecond * 1_000
 
 

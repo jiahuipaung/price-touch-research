@@ -91,8 +91,9 @@ class ForecastService:
             flags.append(QualityFlag.STALE)
         if status.state is QualityState.MARKET_CLOSED:
             flags.append(QualityFlag.MARKET_CLOSED)
+        degraded = status.state in {QualityState.STALE, QualityState.SOURCE_ERROR}
         source = SourceStatus(
-            mode=SourceMode(self.settings.data_mode),
+            mode=SourceMode.DEGRADED if degraded else SourceMode(self.settings.data_mode),
             provider=self.provider,
             age_seconds=status.age_seconds or 0,
             last_event_time=status.last_event_time,

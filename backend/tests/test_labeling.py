@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from price_touch.config import MatrixConfig
 from price_touch.domain import EventKind, MarketEvent, QualityFlag
 from price_touch.geometry import build_geometry
 from price_touch.labeling import LabelPrecision, label_forecast
 
-EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
+EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 
 
 def trade(seconds: int, price_ticks: int, trade_id: str) -> MarketEvent:

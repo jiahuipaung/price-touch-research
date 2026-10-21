@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from price_touch.domain import MarketEvent
 from price_touch.market.quality import DecisionReason, QualityGate, QualityState
 
-BASE = datetime(2026, 1, 1, tzinfo=timezone.utc)
+BASE = datetime(2026, 1, 1, tzinfo=UTC)
 
 
 def event(

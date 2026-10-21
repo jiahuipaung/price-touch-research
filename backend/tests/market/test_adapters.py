@@ -1,17 +1,16 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
-
 from price_touch.domain import EventKind, MarketEvent, SourceMode
 from price_touch.market.binance import parse_binance_trade
 from price_touch.market.commodities import parse_gold_quote, parse_oil_quote
 from price_touch.market.supervisor import AdapterSupervisor, AdapterUnavailable
 
-RECEIVED = datetime(2026, 10, 21, 8, 33, 1, tzinfo=timezone.utc)
+RECEIVED = datetime(2026, 10, 21, 8, 33, 1, tzinfo=UTC)
 
 
 def test_binance_trade_fixture_normalizes_trade_timestamp_price_and_stable_id() -> None:
@@ -32,7 +31,7 @@ def test_binance_trade_fixture_normalizes_trade_timestamp_price_and_stable_id() 
 
     assert event.asset == "BTC"
     assert event.instrument == "BTCUSDT"
-    assert event.event_time == datetime(2022, 12, 31, 19, 43, 2, tzinfo=timezone.utc)
+    assert event.event_time == datetime(2022, 12, 31, 19, 43, 2, tzinfo=UTC)
     assert event.received_time == RECEIVED
     assert event.price_ticks == 4_012_345
     assert event.trade_id == "binance:BTCUSDT:12345"
@@ -60,7 +59,7 @@ def test_gold_quote_fixture_is_explicitly_delayed_and_uses_provider_timestamp() 
     assert quote.event.asset == "GOLD"
     assert quote.event.instrument == "XAUUSD"
     assert quote.event.price_ticks == 412_300
-    assert quote.event.event_time == datetime(2026, 10, 21, 8, 33, 0, 259000, tzinfo=timezone.utc)
+    assert quote.event.event_time == datetime(2026, 10, 21, 8, 33, 0, 259000, tzinfo=UTC)
     assert quote.event.kind is EventKind.QUOTE
     assert quote.stale is False
 
@@ -83,7 +82,7 @@ def test_oil_quote_fixture_maps_wti_session_semantics_without_claiming_a_trade()
     assert quote.event.asset == "OIL"
     assert quote.event.instrument == "WTIUSD"
     assert quote.event.price_ticks == 98_230
-    assert quote.event.event_time == datetime(2026, 10, 20, 20, 43, 37, tzinfo=timezone.utc)
+    assert quote.event.event_time == datetime(2026, 10, 20, 20, 43, 37, tzinfo=UTC)
     assert quote.event.kind is EventKind.QUOTE
     assert quote.provider == "AmericasOilWatch / Yahoo Finance (CL=F)"
 
@@ -131,7 +130,13 @@ async def test_supervisor_reconnects_with_bounded_exponential_backoff() -> None:
     async def sleep(seconds: float) -> None:
         waits.append(seconds)
 
-    supervisor = AdapterSupervisor(factory, max_attempts=4, base_backoff_seconds=1, max_backoff_seconds=2, sleep=sleep)
+    supervisor = AdapterSupervisor(
+        factory,
+        max_attempts=4,
+        base_backoff_seconds=1,
+        max_backoff_seconds=2,
+        sleep=sleep,
+    )
     received = [item async for item in supervisor.run()]
 
     assert received == [sample_event()]

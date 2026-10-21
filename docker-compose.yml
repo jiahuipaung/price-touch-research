@@ -1,12 +1,14 @@
 services:
   app:
     build: .
+    init: true
     environment:
       PRICE_TOUCH_DATA_MODE: REPLAY
     ports:
       - "3000:8000"
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health/live')"]
+      test: ["CMD", "python", "-c", "import json,urllib.request; d=json.load(urllib.request.urlopen('http://localhost:8000/api/v1/health')); assert d['live'] and d['ready']"]
       interval: 5s
       timeout: 2s
       retries: 12
+      start_period: 10s

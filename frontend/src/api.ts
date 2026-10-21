@@ -3,6 +3,35 @@ import { useEffect, useReducer } from "react";
 import { initialStreamState, streamReducer } from "./state";
 import type { ForecastSnapshot } from "./types";
 
+export interface BacktestSummary {
+  dataset: {
+    asset: string;
+    source_kind: string;
+    row_count: number;
+    sha256: string;
+    label_precision: string;
+  };
+  metrics: Record<string, number | null>;
+  reliability: Array<{
+    lower: number;
+    upper: number;
+    count: number;
+    mean_probability: number;
+    observed_frequency: number;
+  }>;
+  groups: Record<string, Record<string, number | null>>;
+  coverage: {
+    disclosure: string;
+    regime_counts: Record<string, number>;
+  };
+}
+
+export async function fetchBacktests(): Promise<BacktestSummary[]> {
+  const response = await fetch("/api/v1/backtests");
+  if (!response.ok) throw new Error(`backtests request failed: ${response.status}`);
+  return response.json() as Promise<BacktestSummary[]>;
+}
+
 const reconnectDelayMs = 1_000;
 
 export function useSnapshotStream() {

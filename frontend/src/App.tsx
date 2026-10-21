@@ -11,10 +11,10 @@ export default function App() {
   const stream = useSnapshotStream();
   return (
     <div className="app-shell">
-      <header className="topbar"><NavLink className="brand" to="/"><span className="brand-mark">T</span><span><strong>TouchLab</strong><small>price reach probability</small></span></NavLink><nav><NavLink to="/">Live matrix</NavLink><NavLink to="/research">Research</NavLink><NavLink to="/quality">Data quality</NavLink><NavLink to="/methodology">Methodology</NavLink></nav></header>
+      <header className="topbar"><NavLink className="brand" to="/"><span className="brand-mark">T</span><span><strong>TouchLab</strong><small>价格区间触达概率</small></span></NavLink><nav><NavLink to="/">实时矩阵</NavLink><NavLink to="/research">研究与回测</NavLink><NavLink to="/quality">数据质量</NavLink><NavLink to="/methodology">方法说明</NavLink></nav></header>
       <StatusBar snapshot={stream.snapshot} connection={stream.connection} />
       <main><Routes><Route path="/" element={<LiveMatrix snapshot={stream.snapshot} />} /><Route path="/research" element={<Research />} /><Route path="/quality" element={<DataQuality />} /><Route path="/methodology" element={<Methodology />} /></Routes></main>
-      <footer>Probabilities are estimates, not trading advice · schema v1.0</footer>
+      <footer>概率仅为研究估计，不构成交易建议 · schema v1.0</footer>
     </div>
   );
 }

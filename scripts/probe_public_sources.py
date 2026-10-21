@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import httpx
-
 from price_touch.market.binance import BinanceTradeAdapter
 from price_touch.market.commodities import GOLD_URL, OIL_URL, parse_gold_quote, parse_oil_quote
 
@@ -16,7 +15,7 @@ async def probe_http(name: str, url: str, parser, tick_size: Decimal) -> dict[st
         async with httpx.AsyncClient(timeout=10) as client:
             response = await client.get(url)
             response.raise_for_status()
-            parsed = parser(response.json(), received_at=datetime.now(timezone.utc), tick_size=tick_size)
+            parsed = parser(response.json(), received_at=datetime.now(UTC), tick_size=tick_size)
         return {
             "asset": name,
             "ok": True,
@@ -50,7 +49,7 @@ async def main() -> None:
         probe_http("GOLD", GOLD_URL, parse_gold_quote, Decimal("0.01")),
         probe_http("OIL", OIL_URL, parse_oil_quote, Decimal("0.001")),
     )
-    print(json.dumps({"checked_at": datetime.now(timezone.utc).isoformat(), "sources": results}, indent=2))
+    print(json.dumps({"checked_at": datetime.now(UTC).isoformat(), "sources": results}, indent=2))
 
 
 if __name__ == "__main__":

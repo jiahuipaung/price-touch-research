@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from bisect import bisect_left, bisect_right
 from dataclasses import dataclass, field
 
 from price_touch.config import MatrixConfig
@@ -21,6 +22,7 @@ class BacktestConfig:
     origin_cadence_seconds: int = 5
     warmup_seconds: int = 30
     label_precision: LabelPrecision = LabelPrecision.TICK_EXACT
+    feature_lookback_events: int = 10_000
 
 
 @dataclass
@@ -53,6 +55,7 @@ class WalkForwardRunner:
             return BacktestRun(self.config)
         first_ns = event_time_ns(ordered[0])
         last_ns = event_time_ns(ordered[-1])
+        event_times = [event_time_ns(event) for event in ordered]
         cadence_ns = self.config.origin_cadence_seconds * NANOSECONDS_PER_SECOND
         first_origin = first_ns + self.config.warmup_seconds * NANOSECONDS_PER_SECOND
         run = BacktestRun(self.config)
@@ -60,8 +63,16 @@ class WalkForwardRunner:
         prior_feature_scales: list[float] = []
 
         for origin_ns in range(first_origin, last_ns + 1, cadence_ns):
-            self._mature_forecasts(run.forecasts, ordered, origin_ns, calibration_rows)
-            state = compute_features(ordered, cutoff_ns=origin_ns)
+            self._mature_forecasts(
+                run.forecasts,
+                ordered,
+                event_times,
+                origin_ns,
+                calibration_rows,
+            )
+            eligible_end = bisect_right(event_times, origin_ns)
+            eligible_start = max(0, eligible_end - self.config.feature_lookback_events)
+            state = compute_features(ordered[eligible_start:eligible_end], cutoff_ns=origin_ns)
             if state.latest_price_ticks is None:
                 continue
             regime = classify_regime(state, prior_feature_scales)
@@ -96,20 +107,29 @@ class WalkForwardRunner:
             )
             prior_feature_scales.append(state.robust_scale)
 
-        self._mature_forecasts(run.forecasts, ordered, last_ns, calibration_rows)
+        self._mature_forecasts(run.forecasts, ordered, event_times, last_ns, calibration_rows)
         return run
 
     def _mature_forecasts(
         self,
         forecasts: list[BacktestForecast],
         events: list[MarketEvent],
+        event_times: list[int],
         available_through_ns: int,
         calibration_rows: list[CalibrationRow],
     ) -> None:
         for forecast in forecasts:
             if forecast.labels is not None or forecast.matures_at_ns > available_through_ns:
                 continue
-            forecast.labels = label_forecast(forecast.geometry, events, self.config.label_precision)
+            first_window_ns = forecast.geometry.windows[0].start_ns
+            final_window_ns = forecast.geometry.windows[-1].end_ns
+            start = bisect_left(event_times, first_window_ns)
+            end = bisect_left(event_times, final_window_ns)
+            forecast.labels = label_forecast(
+                forecast.geometry,
+                events[start:end],
+                self.config.label_precision,
+            )
             for row_index, row in enumerate(forecast.labels.values):
                 for column_index, label in enumerate(row):
                     calibration_rows.append(

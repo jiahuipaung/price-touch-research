@@ -19,8 +19,8 @@ describe("LiveMatrix", () => {
 
   it("validates an odd interval count and exposes asset selection", () => {
     render(<LiveMatrix snapshot={fixtureSnapshot} />);
-    expect(screen.getByLabelText("Asset")).toHaveValue("BTC");
-    fireEvent.change(screen.getByLabelText("Interval count"), { target: { value: "4" } });
-    expect(screen.getByRole("alert")).toHaveTextContent("odd");
+    expect(screen.getByLabelText("资产")).toHaveValue("BTC");
+    fireEvent.change(screen.getByLabelText("区间数量"), { target: { value: "4" } });
+    expect(screen.getByRole("alert")).toHaveTextContent("奇数");
   });
 });

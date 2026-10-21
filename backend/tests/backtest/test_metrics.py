@@ -99,3 +99,22 @@ def test_storage_writes_cell_parquet_and_queryable_duckdb(tmp_path) -> None:
     assert artifacts.duckdb_path.exists()
     with duckdb.connect(str(artifacts.duckdb_path), read_only=True) as connection:
         assert connection.execute("select count(*) from cell_results").fetchone()[0] == 4
+
+
+def test_storage_preserves_schema_when_no_forecasts_are_eligible(tmp_path) -> None:
+    artifacts = write_backtest_rows([], tmp_path)
+
+    with duckdb.connect(str(artifacts.duckdb_path), read_only=True) as connection:
+        assert connection.execute("select count(*) from cell_results").fetchone()[0] == 0
+        names = [item[0] for item in connection.execute("describe cell_results").fetchall()]
+    assert names == [
+        "forecast_id",
+        "probability",
+        "baseline_probability",
+        "label",
+        "asset",
+        "regime",
+        "horizon_bucket",
+        "distance_bucket",
+        "label_precision",
+    ]

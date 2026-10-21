@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import httpx
@@ -16,7 +16,7 @@ OIL_URL = "https://americasoilwatch.com/api/v1/wti"
 
 
 def _parse_timestamp(value: str) -> datetime:
-    return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(timezone.utc)
+    return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(UTC)
 
 
 @dataclass(frozen=True)
@@ -106,7 +106,7 @@ class CommodityQuoteAdapter:
 
     async def events(self) -> AsyncIterator[MarketEvent]:
         while True:
-            received_at = datetime.now(timezone.utc)
+            received_at = datetime.now(UTC)
             payload = await self._fetch_json(self.url)
             parsed = (
                 parse_gold_quote(payload, received_at=received_at, tick_size=self.tick_size)

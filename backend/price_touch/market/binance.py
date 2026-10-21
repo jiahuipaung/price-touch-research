@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 from price_touch.domain import EventKind, MarketEvent
@@ -30,7 +30,7 @@ def parse_binance_trade(
     return MarketEvent(
         asset="BTC",
         instrument=symbol,
-        event_time=datetime.fromtimestamp(trade_time_ms / 1000, timezone.utc),
+        event_time=datetime.fromtimestamp(trade_time_ms / 1000, UTC),
         received_time=received_at,
         price_ticks=_price_to_ticks(str(payload["p"]), tick_size),
         trade_id=f"binance:{symbol}:{trade_id}",
@@ -53,6 +53,6 @@ class BinanceTradeAdapter:
             async for message in websocket:
                 yield parse_binance_trade(
                     json.loads(message),
-                    received_at=datetime.now(timezone.utc),
+                    received_at=datetime.now(UTC),
                     tick_size=self.tick_size,
                 )

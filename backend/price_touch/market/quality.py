@@ -50,7 +50,7 @@ class QualityGate:
         stale_after_seconds: float = 5,
         clock_skew_seconds: float = 2,
     ) -> None:
-        if not 0 <= max_lateness_seconds:
+        if not max_lateness_seconds >= 0:
             raise ValueError("max_lateness_seconds must be nonnegative")
         if not 0 < gap_after_seconds < stale_after_seconds:
             raise ValueError("freshness thresholds must satisfy 0 < gap < stale")

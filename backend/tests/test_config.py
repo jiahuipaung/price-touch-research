@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
-from pydantic import ValidationError
-
 from price_touch.config import MatrixConfig, Settings
 from price_touch.domain import (
     ForecastSnapshot,
@@ -15,6 +13,7 @@ from price_touch.domain import (
     SourceStatus,
     WindowBounds,
 )
+from pydantic import ValidationError
 
 
 def test_default_settings_describe_the_acceptance_matrix() -> None:
@@ -46,7 +45,7 @@ def test_matrix_config_rejects_unsafe_sizes(overrides: dict[str, int]) -> None:
 
 
 def test_forecast_snapshot_serializes_explicit_provenance_and_frozen_geometry() -> None:
-    now = datetime(2026, 10, 21, tzinfo=timezone.utc)
+    now = datetime(2026, 10, 21, tzinfo=UTC)
     snapshot = ForecastSnapshot(
         schema_version="1.0",
         forecast_id="btc-1761000000",

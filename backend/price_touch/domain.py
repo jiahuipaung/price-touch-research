@@ -57,7 +57,7 @@ class IntervalBounds(BaseModel):
     upper_ticks: int
 
     @model_validator(mode="after")
-    def upper_exceeds_lower(self) -> "IntervalBounds":
+    def upper_exceeds_lower(self) -> IntervalBounds:
         if self.upper_ticks <= self.lower_ticks:
             raise ValueError("upper_ticks must exceed lower_ticks")
         return self
@@ -69,7 +69,7 @@ class WindowBounds(BaseModel):
     end_ns: int
 
     @model_validator(mode="after")
-    def end_exceeds_start(self) -> "WindowBounds":
+    def end_exceeds_start(self) -> WindowBounds:
         if self.end_ns <= self.start_ns:
             raise ValueError("end_ns must exceed start_ns")
         return self
@@ -88,12 +88,16 @@ class MatrixPayload(BaseModel):
     calibrated: list[list[float]]
 
     @model_validator(mode="after")
-    def matrices_have_one_shape(self) -> "MatrixPayload":
+    def matrices_have_one_shape(self) -> MatrixPayload:
         shapes = {
             (len(matrix), len(matrix[0]) if matrix else 0)
             for matrix in (self.baseline, self.raw, self.calibrated)
         }
-        if len(shapes) != 1 or any(len(row) != next(iter(shapes))[1] for matrix in (self.baseline, self.raw, self.calibrated) for row in matrix):
+        matrices = (self.baseline, self.raw, self.calibrated)
+        non_rectangular = any(
+            len(row) != next(iter(shapes))[1] for matrix in matrices for row in matrix
+        )
+        if len(shapes) != 1 or non_rectangular:
             raise ValueError("all probability matrices must be rectangular and share one shape")
         for matrix in (self.baseline, self.raw, self.calibrated):
             if any(not 0 <= value <= 1 for row in matrix for value in row):
@@ -120,7 +124,7 @@ class ForecastSnapshot(BaseModel):
     quality_flags: list[QualityFlag] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def matrix_matches_frozen_geometry(self) -> "ForecastSnapshot":
+    def matrix_matches_frozen_geometry(self) -> ForecastSnapshot:
         expected = (len(self.intervals), len(self.windows))
         actual = (
             len(self.matrices.calibrated),

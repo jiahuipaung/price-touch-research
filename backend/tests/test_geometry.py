@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import pytest
-
 from price_touch.config import MatrixConfig
 from price_touch.geometry import build_geometry, interval_index_for_price
 
@@ -24,7 +23,7 @@ def test_build_geometry_freezes_centered_adjacent_intervals_and_disjoint_windows
     assert geometry.intervals[-1].upper_ticks == 102_100
     assert all(
         left.upper_ticks == right.lower_ticks
-        for left, right in zip(geometry.intervals, geometry.intervals[1:])
+        for left, right in zip(geometry.intervals, geometry.intervals[1:], strict=False)
     )
 
     assert len(geometry.windows) == 36
@@ -34,7 +33,7 @@ def test_build_geometry_freezes_centered_adjacent_intervals_and_disjoint_windows
     assert geometry.windows[-1].end_ns == origin_ns + 185_000_000_000
     assert all(
         left.end_ns == right.start_ns
-        for left, right in zip(geometry.windows, geometry.windows[1:])
+        for left, right in zip(geometry.windows, geometry.windows[1:], strict=False)
     )
 
 

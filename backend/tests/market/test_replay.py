@@ -1,17 +1,16 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
-from pydantic import ValidationError
-
 from price_touch.domain import MarketEvent
 from price_touch.market.clock import ReplayClock
 from price_touch.market.manifest import DemoManifest
 from price_touch.market.replay import ReplayAdapter
+from pydantic import ValidationError
 
-BASE = datetime(2026, 1, 1, tzinfo=timezone.utc)
+BASE = datetime(2026, 1, 1, tzinfo=UTC)
 
 
 def event(offset_seconds: int, trade_id: str, price_ticks: int = 100_000) -> MarketEvent:

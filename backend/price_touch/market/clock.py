@@ -13,7 +13,7 @@ class ReplayClock:
         self._running.set()
 
     @classmethod
-    def immediate(cls) -> "ReplayClock":
+    def immediate(cls) -> ReplayClock:
         async def no_sleep(_: float) -> None:
             return None
 

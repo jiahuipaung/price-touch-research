@@ -30,7 +30,7 @@ class DemoManifest(BaseModel):
     fault_scenarios_file: str | None = None
 
     @model_validator(mode="after")
-    def time_range_is_ordered(self) -> "DemoManifest":
+    def time_range_is_ordered(self) -> DemoManifest:
         if self.end_time <= self.start_time:
             raise ValueError("end_time must be after start_time")
         return self

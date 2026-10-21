@@ -4,6 +4,7 @@ import argparse
 import csv
 import hashlib
 import json
+import math
 from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
@@ -16,6 +17,16 @@ from price_touch.config import MatrixConfig
 from price_touch.domain import MarketEvent
 from price_touch.market.manifest import DemoManifest
 from price_touch.model.engine import ProbabilityEngine
+
+
+def json_safe(value):
+    if isinstance(value, float) and not math.isfinite(value):
+        return None
+    if isinstance(value, dict):
+        return {key: json_safe(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [json_safe(item) for item in value]
+    return value
 
 
 def load_dataset(manifest_path: Path) -> tuple[DemoManifest, list[MarketEvent]]:
@@ -38,6 +49,8 @@ def load_dataset(manifest_path: Path) -> tuple[DemoManifest, list[MarketEvent]]:
             price_ticks=int(row["price_ticks"]),
             trade_id=row["trade_id"],
             kind=row["kind"],
+            low_ticks=int(row["low_ticks"]) if row.get("low_ticks") else None,
+            high_ticks=int(row["high_ticks"]) if row.get("high_ticks") else None,
         )
         for row in rows
     ]
@@ -73,21 +86,25 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Run deterministic walk-forward touch-probability backtest")
     parser.add_argument("--dataset", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--minimum-samples-per-regime", type=int, default=50)
+    parser.add_argument("--origin-cadence-seconds", type=int)
     args = parser.parse_args()
 
     manifest, events = load_dataset(args.dataset)
+    is_bar_data = manifest.label_precision.value == "BAR_APPROX"
     config = BacktestConfig(
         asset=manifest.asset,
         instrument=manifest.instrument,
         step_ticks=10_000,
-        origin_cadence_seconds=1,
-        warmup_seconds=1,
+        origin_cadence_seconds=args.origin_cadence_seconds or (3_600 if is_bar_data else 1),
+        warmup_seconds=21_600 if is_bar_data else 1,
         matrix=MatrixConfig(
             interval_count=5,
-            window_count=1,
-            observation_delay_seconds=1,
-            window_seconds=5,
+            window_count=6 if is_bar_data else 1,
+            observation_delay_seconds=60 if is_bar_data else 1,
+            window_seconds=60 if is_bar_data else 5,
         ),
+        label_precision=manifest.label_precision,
     )
     run = WalkForwardRunner(
         ProbabilityEngine(primary_path_count=500, reduced_path_count=100),
@@ -100,7 +117,9 @@ def main() -> None:
     start_ns = int(manifest.start_time.timestamp() * 1_000_000_000)
     end_ns = int(manifest.end_time.timestamp() * 1_000_000_000)
     coverage_manifest = CoverageManifest(
-        evaluation_kind="COMPACT_DEMO",
+        evaluation_kind=(
+            "COMPACT_DEMO" if manifest.source_kind.value == "DETERMINISTIC_SYNTHETIC" else "FULL_CYCLE"
+        ),
         required_start_ns=start_ns,
         required_end_ns=end_ns,
         coarse_start_ns=start_ns,
@@ -108,7 +127,11 @@ def main() -> None:
         high_resolution_start_ns=start_ns,
         high_resolution_end_ns=end_ns,
         checksum_verified=True,
-        minimum_samples_per_regime=1,
+        minimum_samples_per_regime=(
+            1
+            if manifest.source_kind.value == "DETERMINISTIC_SYNTHETIC"
+            else args.minimum_samples_per_regime
+        ),
     )
     coverage_rows = [
         CoverageRow(
@@ -120,7 +143,7 @@ def main() -> None:
         if forecast.labels is not None
     ]
     coverage = validate_cycle_coverage(coverage_manifest, coverage_rows)
-    summary = {
+    summary = json_safe({
         "dataset": manifest.model_dump(mode="json"),
         "forecast_count": len(run.forecasts),
         "matured_forecast_count": sum(forecast.labels is not None for forecast in run.forecasts),
@@ -132,10 +155,12 @@ def main() -> None:
             "parquet": str(artifacts.parquet_path),
             "duckdb": str(artifacts.duckdb_path),
         },
-    }
+    })
     args.output.mkdir(parents=True, exist_ok=True)
-    (args.output / "summary.json").write_text(json.dumps(summary, indent=2, allow_nan=True))
-    print(json.dumps(summary, indent=2, allow_nan=True))
+    (args.output / "summary.json").write_text(json.dumps(summary, indent=2, allow_nan=False))
+    print(json.dumps(summary, indent=2, allow_nan=False))
+    if coverage.is_full_cycle and not coverage.valid:
+        raise SystemExit(2)
 
 
 if __name__ == "__main__":

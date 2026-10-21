@@ -7,6 +7,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.responses import PlainTextResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
 from price_touch.config import MatrixConfig, Settings
@@ -69,8 +70,10 @@ def create_app(
     store: SnapshotStore | None = None,
     settings: Settings | None = None,
     backtest_directory: Path | None = None,
+    lifespan=None,
+    static_directory: Path | None = None,
 ) -> FastAPI:
-    app = FastAPI(title="Price Touch Probability", version="1.0.0")
+    app = FastAPI(title="Price Touch Probability", version="1.0.0", lifespan=lifespan)
     app.state.store = store or SnapshotStore()
     app.state.settings = settings or Settings()
     app.state.backtest_directory = backtest_directory
@@ -85,6 +88,8 @@ def create_app(
             state = "MARKET_CLOSED"
         elif latest.source.stale:
             state = "STALE"
+        elif latest.source.message in {"SOURCE_ERROR", "GAP"}:
+            state = latest.source.message
         else:
             state = "HEALTHY"
         return {
@@ -148,5 +153,8 @@ def create_app(
             pass
         finally:
             app.state.store.unsubscribe(queue)
+
+    if static_directory is not None and static_directory.exists():
+        app.mount("/", StaticFiles(directory=static_directory, html=True), name="frontend")
 
     return app

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
 import numpy as np
+import price_touch.backtest.runner as runner_module
 from price_touch.backtest.runner import BacktestConfig, WalkForwardRunner
 from price_touch.config import MatrixConfig
 from price_touch.domain import MarketEvent
@@ -96,3 +98,21 @@ def test_calibrator_at_each_origin_contains_only_already_matured_prior_labels() 
         origin_ns = int(forecast_id.rsplit(":", 1)[1])
         if calibrator.max_matured_at_ns is not None:
             assert calibrator.max_matured_at_ns < origin_ns
+
+
+def test_runner_bounds_feature_history_and_passes_only_window_events_to_labeler(monkeypatch) -> None:
+    observed_label_batch_sizes: list[int] = []
+    original = runner_module.label_forecast
+
+    def recording_labeler(geometry, selected_events, precision):
+        observed_label_batch_sizes.append(len(selected_events))
+        return original(geometry, selected_events, precision)
+
+    monkeypatch.setattr(runner_module, "label_forecast", recording_labeler)
+    bounded = replace(config(), feature_lookback_events=3)
+    engine = RecordingEngine()
+    WalkForwardRunner(engine, bounded).run(events(100))
+
+    assert all(call[1].sample_count <= 2 for call in engine.calls)
+    assert observed_label_batch_sizes
+    assert max(observed_label_batch_sizes) <= 6
