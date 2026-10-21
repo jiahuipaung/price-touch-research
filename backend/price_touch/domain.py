@@ -33,7 +33,7 @@ class MarketEvent(BaseModel):
     instrument: str
     event_time: datetime
     received_time: datetime
-    price_ticks: int = Field(gt=0)
+    price_ticks: int
     trade_id: str
     kind: EventKind = EventKind.TRADE
     low_ticks: int | None = None

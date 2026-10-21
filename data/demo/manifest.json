@@ -1,0 +1,16 @@
+{
+  "asset": "BTC",
+  "instrument": "BTCUSDT",
+  "source_kind": "DETERMINISTIC_SYNTHETIC",
+  "source_url": null,
+  "acquired_at": "2026-10-21T00:00:00Z",
+  "start_time": "2026-01-01T00:00:00Z",
+  "end_time": "2026-01-01T00:00:10Z",
+  "resolution": "1s synthetic trades",
+  "label_precision": "TICK_EXACT",
+  "row_count": 10,
+  "missing_rate": 0.0909090909,
+  "sha256": "5b7e7f060a3e2243fc104cb1a87cc75e1c5cc03c93f6be54c451449a74b8360f",
+  "file": "market_events.csv",
+  "fault_scenarios_file": "fault_scenarios.json"
+}

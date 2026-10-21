@@ -1,0 +1,9 @@
+{
+  "source_kind": "DETERMINISTIC_SYNTHETIC",
+  "scenarios": [
+    {"at_seconds": 5, "type": "JUMP", "description": "Discrete print jump; skipped intervals are not touches."},
+    {"at_seconds": 8, "type": "DELAY", "delay_seconds": 1},
+    {"at_seconds": 9, "type": "GAP", "duration_seconds": 1},
+    {"at_seconds": 10, "type": "RECOVERY"}
+  ]
+}
