@@ -26,6 +26,7 @@ class QualityFlag(StrEnum):
 class EventKind(StrEnum):
     TRADE = "TRADE"
     BAR = "BAR"
+    QUOTE = "QUOTE"
 
 
 class MarketEvent(BaseModel):
