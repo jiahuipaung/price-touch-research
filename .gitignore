@@ -9,4 +9,5 @@ artifacts/
 data/downloads/
 frontend/dist/
 frontend/node_modules/
+*.tsbuildinfo
 .superpowers/
