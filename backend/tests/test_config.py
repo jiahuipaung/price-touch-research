@@ -13,6 +13,10 @@ from price_touch.domain import (
     SourceStatus,
     WindowBounds,
 )
+from price_touch.live import LiveRuntime
+from price_touch.main import build_runtime
+from price_touch.service import ForecastService
+from price_touch.storage import SnapshotStore
 from pydantic import ValidationError
 
 
@@ -26,6 +30,15 @@ def test_default_settings_describe_the_acceptance_matrix() -> None:
     assert settings.publication_interval_seconds == 1
     assert set(settings.assets) == {"BTC", "GOLD", "OIL"}
     assert all(asset.tick_size > 0 for asset in settings.assets.values())
+
+
+def test_live_mode_builds_a_binance_live_runtime() -> None:
+    settings = Settings(data_mode="LIVE")
+    service = ForecastService(settings=settings, store=SnapshotStore())
+
+    runtime = build_runtime(settings, service)
+
+    assert isinstance(runtime, LiveRuntime)
     assert all(asset.step_ticks > 0 for asset in settings.assets.values())
 
 

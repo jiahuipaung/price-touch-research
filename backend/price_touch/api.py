@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+from collections.abc import Callable
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
@@ -72,18 +73,22 @@ def create_app(
     backtest_directory: Path | None = None,
     lifespan=None,
     static_directory: Path | None = None,
+    transport_status: Callable[[], bool] | None = None,
 ) -> FastAPI:
     app = FastAPI(title="Price Touch Probability", version="1.0.0", lifespan=lifespan)
     app.state.store = store or SnapshotStore()
     app.state.settings = settings or Settings()
     app.state.backtest_directory = backtest_directory
+    app.state.transport_status = transport_status
 
     @app.get("/api/v1/health")
     def health() -> dict:
         latest = app.state.store.latest()
         ready = latest is not None
         if latest is None:
-            return {"live": True, "ready": False, "fresh": False, "state": "STARTING"}
+            transport_ok = transport_status is None or transport_status()
+            state = "STARTING" if transport_ok else "SOURCE_ERROR"
+            return {"live": True, "ready": False, "fresh": False, "state": state}
         if latest.source.market_closed:
             state = "MARKET_CLOSED"
         elif latest.source.stale:

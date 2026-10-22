@@ -1,12 +1,19 @@
 from __future__ import annotations
 
 import json
+import ssl
 from datetime import UTC, datetime
 from decimal import Decimal
+
+import certifi
 
 from price_touch.domain import EventKind, MarketEvent
 
 BINANCE_MARKET_STREAM_BASE = "wss://data-stream.binance.vision/ws"
+
+
+def binance_ssl_context() -> ssl.SSLContext:
+    return ssl.create_default_context(cafile=certifi.where())
 
 
 def _price_to_ticks(value: str | float, tick_size: Decimal) -> int:
@@ -49,7 +56,12 @@ class BinanceTradeAdapter:
     async def events(self):
         from websockets.asyncio.client import connect
 
-        async with connect(self.url, ping_interval=None, close_timeout=5) as websocket:
+        async with connect(
+            self.url,
+            ping_interval=None,
+            close_timeout=5,
+            ssl=binance_ssl_context(),
+        ) as websocket:
             async for message in websocket:
                 yield parse_binance_trade(
                     json.loads(message),

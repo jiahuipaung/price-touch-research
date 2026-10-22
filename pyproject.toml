@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Realtime price-interval touch probability research platform"
 requires-python = ">=3.12"
 dependencies = [
+  "certifi>=2024.8,<2027",
   "duckdb>=1.2,<2",
   "fastapi>=0.115,<1",
   "httpx>=0.27,<1",

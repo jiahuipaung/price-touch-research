@@ -459,6 +459,7 @@ name = "price-touch-research"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "certifi" },
     { name = "duckdb" },
     { name = "fastapi" },
     { name = "httpx" },
@@ -480,6 +481,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "certifi", specifier = ">=2024.8,<2027" },
     { name = "duckdb", specifier = ">=1.2,<2" },
     { name = "fastapi", specifier = ">=0.115,<1" },
     { name = "httpx", specifier = ">=0.27,<1" },

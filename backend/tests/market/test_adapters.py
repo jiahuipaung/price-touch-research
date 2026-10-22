@@ -1,16 +1,25 @@
 from __future__ import annotations
 
+import ssl
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
 from price_touch.domain import EventKind, MarketEvent, SourceMode
+from price_touch.market import binance
 from price_touch.market.binance import parse_binance_trade
 from price_touch.market.commodities import parse_gold_quote, parse_oil_quote
 from price_touch.market.supervisor import AdapterSupervisor, AdapterUnavailable
 
 RECEIVED = datetime(2026, 10, 21, 8, 33, 1, tzinfo=UTC)
+
+
+def test_binance_tls_context_loads_a_portable_ca_bundle() -> None:
+    context = binance.binance_ssl_context()
+
+    assert isinstance(context, ssl.SSLContext)
+    assert context.cert_store_stats()["x509_ca"] > 0
 
 
 def test_binance_trade_fixture_normalizes_trade_timestamp_price_and_stable_id() -> None:
@@ -143,6 +152,66 @@ async def test_supervisor_reconnects_with_bounded_exponential_backoff() -> None:
     assert attempts == 3
     assert waits == [1, 2]
     assert supervisor.terminal_error is None
+
+
+@pytest.mark.asyncio
+async def test_supervisor_reports_transport_failure_and_recovery() -> None:
+    attempts = 0
+    transport_states: list[bool] = []
+
+    def factory():
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            return FailingAdapter(ConnectionError("temporary outage"))
+        return OneEventAdapter(sample_event())
+
+    async def no_sleep(_: float) -> None:
+        return None
+
+    supervisor = AdapterSupervisor(
+        factory,
+        max_attempts=2,
+        sleep=no_sleep,
+        on_transport_change=transport_states.append,
+    )
+
+    received = [item async for item in supervisor.run()]
+
+    assert received == [sample_event()]
+    assert transport_states == [False, True]
+
+
+@pytest.mark.asyncio
+async def test_supervisor_reconnects_when_a_live_stream_closes_normally() -> None:
+    attempts = 0
+    waits: list[float] = []
+
+    def factory():
+        nonlocal attempts
+        attempts += 1
+        return OneEventAdapter(
+            sample_event().model_copy(update={"trade_id": f"event-{attempts}"})
+        )
+
+    async def no_sleep(seconds: float) -> None:
+        waits.append(seconds)
+
+    supervisor = AdapterSupervisor(
+        factory,
+        max_attempts=3,
+        sleep=no_sleep,
+        restart_on_completion=True,
+    )
+    stream = supervisor.run()
+
+    first = await anext(stream)
+    second = await anext(stream)
+    await stream.aclose()
+
+    assert [first.trade_id, second.trade_id] == ["event-1", "event-2"]
+    assert attempts == 2
+    assert waits == [1]
 
 
 @pytest.mark.asyncio

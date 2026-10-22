@@ -24,6 +24,22 @@ In the UI:
 
 Stop the demo with `docker compose down`. The container runs as UID 10001 and exposes only port 3000.
 
+### Live BTC mode
+
+Use Binance Spot's public BTCUSDT trade stream instead of deterministic replay:
+
+```bash
+PRICE_TOUCH_DATA_MODE=LIVE docker compose up --build
+```
+
+No API key is required. Live ingestion and one-second matrix publication run as separate tasks, so a quiet
+second still produces a newly estimated matrix from the latest eligible trade. Connection failures are exposed
+as `SOURCE_ERROR`, retried with bounded exponential backoff, and return to `HEALTHY` only after a new trade is
+received. The model initially reports `INSUFFICIENT_HISTORY` and `UNCALIBRATED` while the live history warms up.
+
+Gold and oil remain explicitly delayed indicative sources; the application does not present them as five-second
+tick-exact live feeds.
+
 ## Exact event
 
 For forecast origin `t`, the price grid is frozen around the latest eligible price `Pₜ`. Price intervals and observation windows are half-open. A cell is 1 when **at least one eligible observed price at any instant in that window lies inside that interval**; closing inside is not required. Windows are disjoint, not cumulative. A discrete jump may skip an interval, so it does not fabricate a touch.

@@ -75,6 +75,23 @@ def test_health_separates_liveness_readiness_and_market_state() -> None:
     assert body["state"] == "MARKET_CLOSED"
 
 
+def test_health_exposes_source_error_before_the_first_live_snapshot() -> None:
+    app = create_app(
+        store=SnapshotStore(),
+        settings=Settings(data_mode="LIVE"),
+        transport_status=lambda: False,
+    )
+
+    body = TestClient(app).get("/api/v1/health").json()
+
+    assert body == {
+        "live": True,
+        "ready": False,
+        "fresh": False,
+        "state": "SOURCE_ERROR",
+    }
+
+
 def test_config_validation_is_actionable() -> None:
     client, _ = client_with_snapshot()
     response = client.put("/api/v1/config", json={"interval_count": 4})
