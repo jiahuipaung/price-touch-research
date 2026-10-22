@@ -32,7 +32,13 @@ def compute_features(events: list[MarketEvent], *, cutoff_ns: int) -> FeatureSta
         (event for event in events if event_time_ns(event) <= cutoff_ns and event.price_ticks > 0),
         key=lambda event: (event.event_time, event.trade_id),
     )
-    prices = np.asarray([event.price_ticks for event in eligible], dtype=float)
+    closes_by_second: dict[int, MarketEvent] = {}
+    for event in eligible:
+        closes_by_second[event_time_ns(event) // 1_000_000_000] = event
+    prices = np.asarray(
+        [closes_by_second[second].price_ticks for second in sorted(closes_by_second)],
+        dtype=float,
+    )
     returns = np.diff(np.log(prices)) if len(prices) >= 2 else np.asarray([], dtype=float)
     if returns.size:
         drift = float(np.median(returns))

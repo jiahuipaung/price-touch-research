@@ -29,7 +29,7 @@ class MatrixConfig(BaseModel):
 
 def default_assets() -> dict[str, AssetConfig]:
     return {
-        "BTC": AssetConfig(symbol="BTC", instrument="BTCUSDT", tick_size=Decimal("0.01"), step_ticks=10_000),
+        "BTC": AssetConfig(symbol="BTC", instrument="BTCUSDT", tick_size=Decimal("0.01"), step_ticks=2_000),
         "GOLD": AssetConfig(symbol="GOLD", instrument="XAUUSD", tick_size=Decimal("0.01"), step_ticks=200),
         "OIL": AssetConfig(symbol="OIL", instrument="WTIUSD", tick_size=Decimal("0.001"), step_ticks=250),
     }

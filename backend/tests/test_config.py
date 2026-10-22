@@ -30,6 +30,7 @@ def test_default_settings_describe_the_acceptance_matrix() -> None:
     assert settings.publication_interval_seconds == 1
     assert set(settings.assets) == {"BTC", "GOLD", "OIL"}
     assert all(asset.tick_size > 0 for asset in settings.assets.values())
+    assert settings.assets["BTC"].step_ticks * settings.assets["BTC"].tick_size == 20
 
 
 def test_live_mode_builds_a_binance_live_runtime() -> None:

@@ -8,7 +8,7 @@ from decimal import Decimal
 import pytest
 from price_touch.domain import EventKind, MarketEvent, SourceMode
 from price_touch.market import binance
-from price_touch.market.binance import parse_binance_trade
+from price_touch.market.binance import parse_binance_klines, parse_binance_trade
 from price_touch.market.commodities import parse_gold_quote, parse_oil_quote
 from price_touch.market.supervisor import AdapterSupervisor, AdapterUnavailable
 
@@ -46,6 +46,47 @@ def test_binance_trade_fixture_normalizes_trade_timestamp_price_and_stable_id() 
     assert event.trade_id == "binance:BTCUSDT:12345"
     assert duplicate.trade_id == event.trade_id
     assert event.kind is EventKind.TRADE
+
+
+def test_binance_second_klines_become_chronological_warmup_bars() -> None:
+    payload = [
+        [
+            1_672_515_781_000,
+            "40100.00",
+            "40120.00",
+            "40090.00",
+            "40110.00",
+            "1.0",
+            1_672_515_781_999,
+            "0",
+            4,
+            "0",
+            "0",
+            "0",
+        ],
+        [
+            1_672_515_782_000,
+            "40110.00",
+            "40130.00",
+            "40100.00",
+            "40125.00",
+            "1.0",
+            1_672_515_782_999,
+            "0",
+            5,
+            "0",
+            "0",
+            "0",
+        ],
+    ]
+
+    events = parse_binance_klines(payload, received_at=RECEIVED, tick_size=Decimal("0.01"))
+
+    assert [event.price_ticks for event in events] == [4_011_000, 4_012_500]
+    assert [event.low_ticks for event in events] == [4_009_000, 4_010_000]
+    assert [event.high_ticks for event in events] == [4_012_000, 4_013_000]
+    assert all(event.kind is EventKind.BAR for event in events)
+    assert events[0].event_time < events[1].event_time
 
 
 def test_gold_quote_fixture_is_explicitly_delayed_and_uses_provider_timestamp() -> None:

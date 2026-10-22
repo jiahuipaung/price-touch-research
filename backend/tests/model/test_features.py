@@ -67,6 +67,41 @@ def test_sparse_history_is_explicitly_insufficient() -> None:
     assert classify_regime(state, []) is Regime.INSUFFICIENT
 
 
+def test_multiple_trades_in_one_second_produce_one_second_close_returns() -> None:
+    market_events = [
+        MarketEvent(
+            asset="BTC",
+            instrument="BTCUSDT",
+            event_time=BASE + timedelta(milliseconds=100),
+            received_time=BASE + timedelta(milliseconds=100),
+            price_ticks=100_000,
+            trade_id="first",
+        ),
+        MarketEvent(
+            asset="BTC",
+            instrument="BTCUSDT",
+            event_time=BASE + timedelta(milliseconds=900),
+            received_time=BASE + timedelta(milliseconds=900),
+            price_ticks=101_000,
+            trade_id="second",
+        ),
+        MarketEvent(
+            asset="BTC",
+            instrument="BTCUSDT",
+            event_time=BASE + timedelta(seconds=1, milliseconds=100),
+            received_time=BASE + timedelta(seconds=1, milliseconds=100),
+            price_ticks=102_000,
+            trade_id="third",
+        ),
+    ]
+
+    state = compute_features(market_events, cutoff_ns=ns_at(2))
+
+    assert state.sample_count == 1
+    assert state.latest_price_ticks == 102_000
+    assert math.isclose(state.returns[0], math.log(102_000 / 101_000))
+
+
 def test_extreme_return_is_classified_as_shock() -> None:
     state = compute_features(events([100_000, 100_100, 200_000]), cutoff_ns=ns_at(2))
 

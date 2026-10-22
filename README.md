@@ -37,6 +37,11 @@ second still produces a newly estimated matrix from the latest eligible trade. C
 as `SOURCE_ERROR`, retried with bounded exponential backoff, and return to `HEALTHY` only after a new trade is
 received. The model initially reports `INSUFFICIENT_HISTORY` and `UNCALIBRATED` while the live history warms up.
 
+Before opening the live stream, the runtime requests up to 900 completed one-second BTCUSDT klines from Binance's
+public market-data-only REST endpoint. Live trades remain the exact touch-label source, while model returns use the
+last eligible trade or bar close in each second so high trade frequency is not mistaken for one-second volatility.
+If warmup is unavailable, the live stream still starts and reports its insufficient-history state explicitly.
+
 Gold and oil remain explicitly delayed indicative sources; the application does not present them as five-second
 tick-exact live feeds.
 

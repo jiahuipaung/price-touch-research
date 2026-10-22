@@ -13,7 +13,7 @@ from price_touch.api import create_app
 from price_touch.config import Settings
 from price_touch.demo import DemoRuntime
 from price_touch.live import LiveRuntime
-from price_touch.market.binance import BinanceTradeAdapter
+from price_touch.market.binance import BinanceTradeAdapter, fetch_binance_second_klines
 from price_touch.service import ForecastService
 from price_touch.storage import SnapshotStore
 
@@ -31,6 +31,10 @@ def build_runtime(settings: Settings, service: ForecastService):
         return LiveRuntime(
             service,
             adapter_factory=lambda: BinanceTradeAdapter(symbol=btc.instrument, tick_size=btc.tick_size),
+            warmup_loader=lambda: fetch_binance_second_klines(
+                symbol=btc.instrument,
+                tick_size=btc.tick_size,
+            ),
         )
     raise ValueError(f"unsupported data mode: {settings.data_mode}")
 

@@ -5,6 +5,7 @@ import contextlib
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 
+from price_touch.domain import MarketEvent
 from price_touch.market.base import MarketAdapter
 from price_touch.market.supervisor import AdapterSupervisor, AdapterUnavailable
 from price_touch.service import ForecastService
@@ -12,6 +13,7 @@ from price_touch.service import ForecastService
 Clock = Callable[[], datetime]
 Sleep = Callable[[float], Awaitable[None]]
 AdapterFactory = Callable[[], MarketAdapter]
+WarmupLoader = Callable[[], Awaitable[list[MarketEvent]]]
 
 
 class LiveRuntime:
@@ -22,12 +24,14 @@ class LiveRuntime:
         service: ForecastService,
         *,
         adapter_factory: AdapterFactory,
+        warmup_loader: WarmupLoader | None = None,
         clock: Clock | None = None,
         sleep: Sleep = asyncio.sleep,
         reconnect_attempts: int = 5,
     ) -> None:
         self.service = service
         self.adapter_factory = adapter_factory
+        self.warmup_loader = warmup_loader
         self.clock = clock or (lambda: datetime.now(UTC))
         self.sleep = sleep
         self.reconnect_attempts = reconnect_attempts
@@ -50,7 +54,18 @@ class LiveRuntime:
         except AdapterUnavailable:
             self.service.transport_ok = False
 
+    async def _warmup(self) -> None:
+        if self.warmup_loader is None:
+            return
+        try:
+            events = await self.warmup_loader()
+        except Exception:
+            return
+        for event in events:
+            self.service.ingest(event)
+
     async def run(self) -> None:
+        await self._warmup()
         ingest_task = asyncio.create_task(self._ingest())
         try:
             await self._first_event.wait()

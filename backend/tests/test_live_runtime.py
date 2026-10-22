@@ -88,3 +88,66 @@ async def test_live_runtime_publishes_each_tick_without_waiting_for_another_trad
         start + timedelta(seconds=2),
     ]
     assert all(snapshot.source.mode.value == "LIVE" for snapshot in snapshots)
+
+
+@pytest.mark.asyncio
+async def test_live_runtime_warms_features_before_waiting_for_first_trade() -> None:
+    start = datetime(2026, 10, 22, tzinfo=UTC)
+    warmup_events = [
+        MarketEvent(
+            asset="BTC",
+            instrument="BTCUSDT",
+            event_time=start - timedelta(seconds=offset),
+            received_time=start,
+            price_ticks=10_000_000 + offset * 100,
+            trade_id=f"warmup-{offset}",
+        )
+        for offset in (3, 2, 1)
+    ]
+    live_event = MarketEvent(
+        asset="BTC",
+        instrument="BTCUSDT",
+        event_time=start,
+        received_time=start,
+        price_ticks=10_000_000,
+        trade_id="live",
+    )
+    settings = Settings(
+        data_mode="LIVE",
+        matrix=MatrixConfig(interval_count=3, window_count=2),
+        monte_carlo_paths=100,
+    )
+    store = SnapshotStore()
+    service = ForecastService(
+        settings=settings,
+        store=store,
+        engine=ConstantEngine(),
+        provider="Binance Spot",
+    )
+
+    async def warmup_loader() -> list[MarketEvent]:
+        return warmup_events
+
+    async def stop_after_first_tick(_: float) -> None:
+        raise StopRuntime
+
+    runtime = LiveRuntime(
+        service,
+        adapter_factory=lambda: OneEventThenWaitAdapter(live_event),
+        warmup_loader=warmup_loader,
+        clock=lambda: start + timedelta(seconds=1),
+        sleep=stop_after_first_tick,
+        reconnect_attempts=1,
+    )
+
+    with pytest.raises(StopRuntime):
+        await runtime.run()
+
+    assert [event.trade_id for event in service.events[:3]] == [
+        "warmup-3",
+        "warmup-2",
+        "warmup-1",
+    ]
+    assert "INSUFFICIENT_HISTORY" not in [
+        flag.value for flag in store.latest().quality_flags
+    ]
