@@ -1,0 +1,55 @@
+{
+  "evidence_version": "1.0",
+  "executed_at": "2026-10-21T09:05:23Z",
+  "dataset": {
+    "asset": "BTC",
+    "instrument": "BTCUSDT",
+    "source_kind": "REAL_PUBLIC",
+    "source_url": "https://data.binance.vision/data/spot/monthly/klines/BTCUSDT/1m",
+    "start_time": "2020-01-01T00:00:00Z",
+    "end_time": "2020-12-31T23:59:00Z",
+    "resolution": "1m OHLC bars",
+    "label_precision": "BAR_APPROX",
+    "row_count": 525788,
+    "missing_rate": 0.0,
+    "normalized_sha256": "a0dee019dd63894868e2252135000df2067c62e259b7b571a56ded83d4d2fa6f"
+  },
+  "configuration": {
+    "origin_cadence_seconds": 86400,
+    "warmup_seconds": 21600,
+    "feature_lookback_events": 10000,
+    "minimum_samples_per_regime": 50,
+    "interval_count": 5,
+    "window_count": 6,
+    "observation_delay_seconds": 60,
+    "window_seconds": 60,
+    "monte_carlo_paths": 500
+  },
+  "forecast_count": 366,
+  "matured_forecast_count": 366,
+  "cell_count": 10980,
+  "metrics": {
+    "coverage": 1.0,
+    "brier_score": 0.06893727252342229,
+    "baseline_brier": 0.5890036107736287,
+    "brier_skill": 0.8829595077814949,
+    "log_loss": 0.25039660895075,
+    "ece": 0.031016191325639098,
+    "calibration_intercept": -0.4237405864720091,
+    "calibration_slope": 0.5156408405372517,
+    "brier_ci": [0.062024128993230974, 0.074419032680699]
+  },
+  "coverage": {
+    "valid": true,
+    "is_full_cycle": true,
+    "disclosure": "FULL_CYCLE",
+    "regime_counts": {
+      "LOW": 126,
+      "MEDIUM": 70,
+      "HIGH": 56,
+      "SHOCK": 114
+    },
+    "missing_requirements": []
+  },
+  "artifact_policy": "Raw archives and generated analytical files are reproducible and intentionally not committed."
+}
